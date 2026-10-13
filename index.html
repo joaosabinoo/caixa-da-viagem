@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0d6b6e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Caixa Viagem">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}</style>
+<title>Caixa da Viagem</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: uma coluna estreita tipo cartão de embarque — saldo no topo, lançar gasto, mensagem pronta, histórico */
+:root{
+  --bg:#eef1f4; --card:#ffffff; --ink:#14212e; --muted:#5d6b78; --line:#d9dfe5;
+  --accent:#0d6b6e; --accent-ink:#ffffff; --sun:#e79a1e; --bad:#c2402f; --good:#2c8a54;
+  --soft:#e3eff0;
+  --f-display:"Bricolage Grotesque", "Trebuchet MS", sans-serif;
+  --f-body:"Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-num:"DM Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --r:14px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1820; --card:#17232d; --ink:#e8eef3; --muted:#93a3b1; --line:#2a3946;
+  --accent:#3fb3b0; --accent-ink:#06201f; --sun:#f0ae45; --bad:#ef7a68; --good:#5fc489; --soft:#1c3337;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1820; --card:#17232d; --ink:#e8eef3; --muted:#93a3b1; --line:#2a3946;
+  --accent:#3fb3b0; --accent-ink:#06201f; --sun:#f0ae45; --bad:#ef7a68; --good:#5fc489; --soft:#1c3337;
+  color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.45}
+.wrap{max-width:480px;margin:0 auto;padding:16px 16px 40px;display:flex;flex-direction:column;gap:14px}
+h1,h2{font-family:var(--f-display);margin:0;text-wrap:balance}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums}
+.label{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+.card{background:var(--card);border-radius:var(--r);padding:16px;border:1px solid var(--line)}
+button,input,select{font:inherit;color:inherit}
+input{width:100%;padding:12px 14px;border-radius:10px;border:1px solid var(--line);background:var(--bg);font-size:17px}
+input:focus-visible,button:focus-visible,a:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+.btn{border:0;border-radius:12px;padding:14px 16px;font-weight:600;cursor:pointer;background:var(--accent);color:var(--accent-ink);font-size:16px;width:100%;text-align:center;text-decoration:none;display:block}
+.btn.ghost{background:transparent;color:var(--accent);border:1.5px solid var(--accent)}
+.btn.small{width:auto;padding:8px 12px;font-size:14px}
+.link{background:none;border:0;color:var(--muted);text-decoration:underline;cursor:pointer;padding:4px;font-size:14px}
+
+/* ticket header */
+.ticket{background:var(--accent);color:var(--accent-ink);border-radius:var(--r);padding:18px 18px 16px;position:relative;overflow:hidden}
+.ticket .top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.ticket .label{color:inherit;opacity:.8}
+.ticket h1{font-size:20px;font-weight:600;min-width:0;overflow-wrap:anywhere}
+.saldo{font-family:var(--f-display);font-weight:800;font-size:clamp(40px,13vw,56px);line-height:1;margin-top:14px;font-variant-numeric:tabular-nums}
+.saldo.neg{color:#ffd7cf}
+.bar{height:10px;border-radius:99px;background:rgba(255,255,255,.25);margin-top:14px;overflow:hidden}
+.bar span{display:block;height:100%;background:var(--sun);border-radius:99px;transition:width .3s}
+.bar span.over{background:#ff8a76}
+.facts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;font-size:14px}
+.facts b{display:block;font-family:var(--f-num);font-weight:500;font-size:15px}
+.perf{border-top:2px dashed rgba(255,255,255,.35);margin:14px -18px 0}
+.ticket .edit{color:inherit;opacity:.85}
+.status{margin-top:10px;font-size:13px;opacity:.9}
+
+.row{display:flex;gap:10px}
+.row>*{min-width:0}
+.money{position:relative;flex:0 0 42%}
+.money::before{content:"R$";position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:15px;pointer-events:none}
+.money input{padding-left:40px;font-family:var(--f-num)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.chip{border:1.5px solid var(--line);background:transparent;border-radius:99px;padding:7px 12px;font-size:14px;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--soft);border-color:var(--accent);color:var(--accent);font-weight:600}
+.err{color:var(--bad);font-size:14px;margin-top:8px}
+
+.msg{background:var(--soft);border-radius:10px;padding:12px 14px;white-space:pre-wrap;font-size:15px;margin:10px 0 12px;overflow-wrap:anywhere}
+.msg-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.toggle{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--muted);margin-top:8px}
+.toggle input{width:20px;height:20px;accent-color:var(--accent)}
+
+.list{list-style:none;margin:8px 0 0;padding:0}
+.item{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;padding:11px 0;border-bottom:1px solid var(--line)}
+.item:last-child{border-bottom:0}
+.item .d{min-width:0}
+.item .d div{overflow-wrap:anywhere}
+.item small{color:var(--muted);font-size:13px}
+.del{border:0;background:transparent;color:var(--muted);cursor:pointer;font-size:13px;padding:6px 8px;border-radius:8px}
+.del.armed{background:var(--bad);color:#fff}
+.cats{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;color:var(--muted);margin-top:6px}
+.cats b{color:var(--ink);font-family:var(--f-num);font-weight:500}
+.empty{color:var(--muted);font-size:15px;padding:8px 0}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:99px;font-size:14px;font-weight:600}
+.setup p{color:var(--muted);margin:6px 0 14px}
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <!-- SETUP -->
+  <section class="card setup" id="setup" hidden>
+    <h2 style="font-size:24px">Configurar viagem</h2>
+    <p>Coloque o limite do reembolso. Cada gasto que você lançar sai desse valor e a mensagem para o grupo fica pronta.</p>
+    <form id="setupForm" novalidate>
+      <div class="field"><label class="label" for="sNome">Nome da viagem</label>
+        <input id="sNome" placeholder="Ex.: Viagem São Paulo – out/26" autocomplete="off"></div>
+      <div class="field"><label class="label" for="sLimite">Limite do reembolso</label>
+        <div class="money" style="flex:none"><input id="sLimite" inputmode="decimal" placeholder="0,00" autocomplete="off"></div></div>
+      <div class="err" id="sErr" hidden></div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <button class="btn" type="submit" id="sSave">Começar</button>
+        <button class="btn ghost" type="button" id="sCancel" hidden>Cancelar</button>
+      </div>
+    </form>
+    <div id="resetBox" hidden style="margin-top:18px;border-top:1px solid var(--line);padding-top:14px">
+      <div class="label">Nova viagem</div>
+      <p style="margin:6px 0 10px">Apaga todos os gastos lançados e recomeça do zero.</p>
+      <button class="btn ghost small" type="button" id="resetBtn">Zerar gastos</button>
+    </div>
+  </section>
+
+  <!-- MAIN -->
+  <div id="main" hidden style="display:contents">
+    <section class="ticket" aria-live="polite">
+      <div class="top">
+        <div style="min-width:0"><div class="label">Viagem</div><h1 id="tNome"></h1></div>
+        <button class="link edit" id="editBtn" style="color:inherit">Editar</button>
+      </div>
+      <div class="label" style="margin-top:14px" id="saldoLabel">Ainda posso gastar</div>
+      <div class="saldo" id="tSaldo"></div>
+      <div class="bar"><span id="tBar"></span></div>
+      <div class="facts">
+        <div><span class="label">Gasto</span><b id="tGasto"></b></div>
+        <div><span class="label">Limite</span><b id="tLimite"></b></div>
+      </div>
+      <div class="status" id="tStatus"></div>
+    </section>
+
+    <section class="card">
+      <h2 style="font-size:19px">Lançar gasto</h2>
+      <form id="addForm" novalidate style="margin-top:12px">
+        <div class="row">
+          <div class="money"><label class="label" for="aValor" style="position:absolute;left:-9999px">Valor</label>
+            <input id="aValor" inputmode="decimal" placeholder="0,00" autocomplete="off"></div>
+          <div style="flex:1"><label for="aDesc" style="position:absolute;left:-9999px">Descrição</label>
+            <input id="aDesc" placeholder="O que foi?" autocomplete="off" maxlength="60"></div>
+        </div>
+        <div class="chips" id="chips" role="group" aria-label="Categoria"></div>
+        <button class="btn" type="submit">Descontar do saldo</button>
+        <div class="err" id="aErr" hidden></div>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2 style="font-size:19px">Mensagem para o grupo</h2>
+      <div class="msg" id="msg"></div>
+      <div class="msg-actions">
+        <button class="btn" id="copyBtn" type="button">Copiar</button>
+        <a class="btn ghost" id="waBtn" href="#" target="_blank" rel="noopener">WhatsApp</a>
+      </div>
+      <label class="toggle"><input type="checkbox" id="detail"> Incluir lista de todos os gastos</label>
+    </section>
+
+    <section class="card">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px">
+        <h2 style="font-size:19px">Gastos lançados</h2><span class="label" id="count"></span>
+      </div>
+      <div class="cats" id="cats"></div>
+      <ul class="list" id="list"></ul>
+    </section>
+  </div>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+const CATS=["Alimentação","Transporte","Hospedagem","Outros"];
+const LSKEY="caixa-viagem-v1";
+let state=null;        // {nome, limite, gastos:[{id,valor,desc,cat,ts}]}
+let ref=null;          // db doc ref
+let cat=CATS[0];
+let editing=false;
+let writing=Promise.resolve();
+
+const $=id=>document.getElementById(id);
+const fmt=v=>v.toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+function parseMoney(s){
+  s=String(s||"").replace(/[R$\s]/g,"");
+  if(!s) return NaN;
+  if(s.includes(",")) s=s.replace(/\./g,"").replace(",",".");
+  else if((s.match(/\./g)||[]).length>1) s=s.replace(/\./g,"");
+  const n=Number(s); return isFinite(n)?Math.round(n*100)/100:NaN;
+}
+const cents=a=>Math.round(a*100);
+function totals(){
+  const g=state.gastos.reduce((s,x)=>s+cents(x.valor),0)/100;
+  return {gasto:g, saldo:(cents(state.limite)-cents(g))/100};
+}
+function toast(t){const el=$("toast");el.textContent=t;el.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>el.hidden=true,1800)}
+
+/* ---------- storage ---------- */
+function lsGet(){try{return JSON.parse(localStorage.getItem(LSKEY)||"null")}catch(e){return null}}
+function lsSet(v){try{localStorage.setItem(LSKEY,JSON.stringify(v))}catch(e){}}
+function save(){
+  const snap=JSON.parse(JSON.stringify(state));
+  lsSet(snap);
+  if(!ref){render();return}
+  writing=writing.then(()=>ref.set(snap)).catch(e=>{
+    $("tStatus").textContent="Não consegui salvar na nuvem agora; ficou guardado só neste aparelho.";
+  });
+  render();
+}
+
+/* ---------- render ---------- */
+function render(){
+  const has=state&&state.limite>0;
+  $("setup").hidden=has&&!editing;
+  $("main").hidden=!(has&&!editing);
+  $("main").style.display=(has&&!editing)?"contents":"none";
+  if(!has||editing){
+    $("sCancel").hidden=!has; $("resetBox").hidden=!has;
+    $("sSave").textContent=has?"Salvar":"Começar";
+    return;
+  }
+  const {gasto,saldo}=totals();
+  $("tNome").textContent=state.nome||"Viagem a trabalho";
+  $("tSaldo").textContent=fmt(saldo<0?-saldo:saldo);
+  $("tSaldo").classList.toggle("neg",saldo<0);
+  $("saldoLabel").textContent=saldo<0?"Passei do limite em":"Ainda posso gastar";
+  const pct=state.limite?Math.min(100,gasto/state.limite*100):0;
+  $("tBar").style.width=pct+"%"; $("tBar").classList.toggle("over",saldo<0);
+  $("tGasto").textContent=fmt(gasto); $("tLimite").textContent=fmt(state.limite);
+  if(!$("tStatus").dataset.locked) $("tStatus").textContent=saldo<0?"Acima do reembolso: esse excedente sai do seu bolso.":
+     pct>=80?`Atenção: ${Math.round(pct)}% do limite já usado.`:`${Math.round(100-pct)}% do limite livre.`;
+
+  // chips
+  const ch=$("chips"); ch.innerHTML="";
+  CATS.forEach(c=>{const b=document.createElement("button");b.type="button";b.className="chip";b.textContent=c;
+    b.setAttribute("aria-pressed",c===cat);b.onclick=()=>{cat=c;render()};ch.appendChild(b)});
+
+  // list
+  const ul=$("list"); ul.innerHTML="";
+  const gs=[...state.gastos].sort((a,b)=>b.ts-a.ts);
+  $("count").textContent=gs.length?`${gs.length} ${gs.length===1?"gasto":"gastos"}`:"";
+  if(!gs.length){ul.innerHTML='<li class="empty">Nenhum gasto ainda. Lance o primeiro acima e ele aparece aqui.</li>'}
+  gs.forEach(g=>{
+    const li=document.createElement("li");li.className="item";
+    const d=new Date(g.ts);
+    li.innerHTML=`<div class="d"><div></div><small></small></div><span class="num"></span><button class="del" type="button">Apagar</button>`;
+    li.querySelector(".d div").textContent=g.desc||g.cat;
+    li.querySelector("small").textContent=`${g.cat} · ${d.toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit"})} ${d.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})}`;
+    li.querySelector(".num").textContent=fmt(g.valor);
+    const del=li.querySelector(".del");
+    del.onclick=()=>{
+      if(!del.classList.contains("armed")){del.classList.add("armed");del.textContent="Confirmar";setTimeout(()=>{del.classList.remove("armed");del.textContent="Apagar"},3000);return}
+      state.gastos=state.gastos.filter(x=>x.id!==g.id);save();toast("Gasto apagado");
+    };
+    ul.appendChild(li);
+  });
+  // categories
+  const by={};state.gastos.forEach(g=>by[g.cat]=(by[g.cat]||0)+cents(g.valor));
+  $("cats").innerHTML="";
+  Object.keys(by).forEach(k=>{const s=document.createElement("span");s.innerHTML=`${k} <b></b>`;s.querySelector("b").textContent=fmt(by[k]/100);$("cats").appendChild(s)});
+
+  // message
+  const m=buildMsg(); $("msg").textContent=m;
+  $("waBtn").href="https://wa.me/?text="+encodeURIComponent(m);
+}
+
+function buildMsg(){
+  const {gasto,saldo}=totals();
+  const last=[...state.gastos].sort((a,b)=>b.ts-a.ts)[0];
+  const L=[`🧳 *${state.nome||"Viagem a trabalho"}*`];
+  if(last) L.push(`Último gasto: ${last.desc||last.cat} — ${fmt(last.valor)}`);
+  L.push("");
+  L.push(`Gasto até agora: ${fmt(gasto)}`);
+  L.push(`Limite do reembolso: ${fmt(state.limite)}`);
+  L.push(saldo<0?`⚠️ Passei ${fmt(-saldo)} do limite`:`✅ Ainda posso gastar: *${fmt(saldo)}*`);
+  if($("detail").checked&&state.gastos.length){
+    L.push("","Gastos:");
+    [...state.gastos].sort((a,b)=>a.ts-b.ts).forEach(g=>{
+      const d=new Date(g.ts).toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit"});
+      L.push(`• ${d} ${g.desc||g.cat} — ${fmt(g.valor)}`);
+    });
+  }
+  return L.join("\n");
+}
+
+/* ---------- events ---------- */
+$("setupForm").addEventListener("submit",e=>{
+  e.preventDefault();
+  const lim=parseMoney($("sLimite").value);
+  if(!(lim>0)){$("sErr").textContent="Digite o limite em reais, por exemplo 1.500,00.";$("sErr").hidden=false;return}
+  $("sErr").hidden=true;
+  state=state||{gastos:[]};
+  state.nome=$("sNome").value.trim(); state.limite=lim;
+  editing=false; save();
+});
+$("sCancel").onclick=()=>{editing=false;render()};
+$("editBtn").onclick=()=>{editing=true;$("sNome").value=state.nome||"";$("sLimite").value=String(state.limite).replace(".",",");
+  $("resetBtn").textContent="Zerar gastos";$("resetBtn").dataset.armed="";render();window.scrollTo(0,0)};
+$("resetBtn").onclick=()=>{
+  const b=$("resetBtn");
+  if(!b.dataset.armed){b.dataset.armed="1";b.textContent="Toque de novo para apagar tudo";return}
+  state.gastos=[];editing=false;save();toast("Gastos zerados");
+};
+$("addForm").addEventListener("submit",e=>{
+  e.preventDefault();
+  const v=parseMoney($("aValor").value);
+  if(!(v>0)){$("aErr").textContent="Digite o valor do gasto, por exemplo 48,90.";$("aErr").hidden=false;$("aValor").focus();return}
+  $("aErr").hidden=true;
+  state.gastos.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),valor:v,desc:$("aDesc").value.trim(),cat,ts:Date.now()});
+  $("aValor").value="";$("aDesc").value="";$("aValor").blur();$("aDesc").blur();
+  save(); toast(`${fmt(v)} descontado`);
+});
+$("detail").onchange=render;
+$("copyBtn").onclick=()=>{
+  const t=buildMsg();
+  const fallback=()=>{const r=document.createRange();r.selectNodeContents($("msg"));const s=getSelection();s.removeAllRanges();s.addRange(r);toast("Texto selecionado — toque em Copiar")};
+  try{navigator.clipboard.writeText(t).then(()=>toast("Mensagem copiada"),fallback)}catch(e){fallback()}
+};
+
+/* ---------- boot ---------- */
+state=lsGet(); render();
+(async()=>{
+  try{
+    if(!window.claude||!window.claude.use) return;
+    const [db,user]=await Promise.all([claude.use("db"),claude.use("user")]);
+    if(!db||!user) return;
+    const uid=await user.id(); if(!uid) return;
+    ref=db.doc("data/users/"+uid+"/viagem");
+    let first=true;
+    ref.onSnapshot(snap=>{
+      if(snap.exists){
+        const d=snap.data();
+        state={nome:d.nome||"",limite:Number(d.limite)||0,gastos:Array.isArray(d.gastos)?d.gastos.map(g=>({...g})):[]};
+        lsSet(state); if(!editing) render();
+      }else if(first&&state&&state.limite>0){
+        // migra o que já estava neste aparelho
+        writing=writing.then(()=>ref.set(JSON.parse(JSON.stringify(state)))).catch(()=>{});
+      }
+      first=false;
+    },()=>{ref=null});
+  }catch(e){ref=null}
+})();
+</script>
+
+</body>
+</html>
